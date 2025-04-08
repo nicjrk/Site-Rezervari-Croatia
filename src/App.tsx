@@ -10,14 +10,14 @@ interface SeatProps {
 }
 
 const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect, name }) => (
-  <div className="flex flex-col items-center">
+  <div className="flex flex-col items-center w-14">
     {isOccupied && name && (
-      <span className="text-xs text-gray-600 mb-1 max-w-[3rem] text-center leading-tight break-words">
+      <span className="text-xs text-gray-600 mb-1 text-center leading-tight break-words">
         {name.split(" ")[0]}
       </span>
     )}
     <button
-      className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
+      className={`w-12 h-12 rounded-lg flex items-center justify-center font-medium transition-colors
         ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' :
           isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
       onClick={() => !isOccupied && onSelect(number)}
@@ -29,13 +29,52 @@ const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect, n
   </div>
 );
 
-// ✅ Normalizează orice număr la formatul cu „0” în față
-function normalizePhone(phone: string): string {
-  const onlyDigits = phone.replace(/\D/g, '');
-  return onlyDigits.startsWith('0') ? onlyDigits : '0' + onlyDigits;
-}
+const seatsLayout: (number | null)[][] = [
+  [1, 2, null, 3, 4],
+  [5, 6, null, 7, 8],
+  [9, 10, null, 11, 12],
+  [13, 14, null, 15, 16],
+  [17, 18, null, 19, 20],
+  [21, 22, null, 23, 24],
+  [25, 26, null, null, null],   // WC
+  [27, 28, null, null, null],   // USA
+  [29, 30, null, 31, 32],
+  [33, 34, null, 35, 36],
+  [37, 38, null, 39, 40],
+  [41, 42, null, 43, 44],
+  [45, 46, null, 47, 48],
+  [49, 50, null, 51, 52],
+  [null, 53, 54, 55, null]      // Rândul din spate, doar 3 locuri
+];
 
-const API_URL = "https://sheetdb.io/api/v1/ohfbsp90spv39";
+
+
+const renderSeatsFromLayout = (
+  layout: (number | null)[][],
+  occupiedSeats: number[],
+  selectedSeat: number | null,
+  setSelectedSeat: (n: number) => void,
+  ocupatBy: { [key: number]: string }
+) => (
+  layout.map((row, rowIndex) => (
+    <div key={rowIndex} className="flex justify-center gap-2 mb-2">
+      {row.map((seat, colIndex) =>
+        seat ? (
+          <Seat
+            key={seat}
+            number={seat}
+            isOccupied={occupiedSeats.includes(seat)}
+            isSelected={selectedSeat === seat}
+            onSelect={setSelectedSeat}
+            name={ocupatBy[seat]}
+          />
+        ) : (
+          <div key={`empty-${rowIndex}-${colIndex}`} className="w-14 h-12" />
+        )
+      )}
+    </div>
+  ))
+);
 
 function App() {
   const [occupiedSeats, setOccupiedSeats] = useState<number[]>([]);
@@ -46,8 +85,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [alert, setAlert] = useState<string | null>(null);
   const [alertType, setAlertType] = useState<'success' | 'error' | null>(null);
-  const [showDeleteForm, setShowDeleteForm] = useState(false);
-  const [deletePhone, setDeletePhone] = useState('');
+
+  const API_URL = "https://sheetdb.io/api/v1/ohfbsp90spv39";
 
   useEffect(() => {
     fetchOccupiedSeats();
@@ -84,12 +123,11 @@ function App() {
     if (!selectedSeat) return;
 
     try {
-      const normalizedPhone = normalizePhone(phoneNumber);
       const checkRes = await fetch(API_URL);
       const existing = await checkRes.json();
 
       const alreadyReservedSeat = existing.some((rez: any) => rez.Loc === selectedSeat.toString());
-      const alreadyReservedPhone = existing.some((rez: any) => normalizePhone(rez.Telefon) === normalizedPhone);
+      const alreadyReservedPhone = existing.some((rez: any) => rez.Telefon === phoneNumber);
 
       if (alreadyReservedSeat) {
         setAlert(`Locul ${selectedSeat} a fost deja rezervat. Se reîncarcă...`);
@@ -107,7 +145,7 @@ function App() {
       const reservation = {
         data: {
           Nume: fullName,
-          Telefon: normalizedPhone,
+          Telefon: phoneNumber,
           Loc: selectedSeat.toString(),
         },
       };
@@ -130,98 +168,6 @@ function App() {
     }
   };
 
-  const confirmDelete = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const userConfirmed = window.confirm("Ești sigur că vrei să ștergi această rezervare?");
-    if (!userConfirmed) return;
-
-    try {
-      const normalizedPhone = normalizePhone(deletePhone);
-      const res = await fetch(`${API_URL}/search?Telefon=${normalizedPhone}`);
-      const data: { id?: string; Telefon: string; Loc: string }[] = await res.json();
-
-      if (data.length === 0) {
-        setAlert("Nu s-a găsit nicio rezervare cu acest număr.");
-        setAlertType("error");
-        return;
-      }
-
-      for (const rez of data) {
-        const idRes = await fetch(`${API_URL}/search?Telefon=${rez.Telefon}&Loc=${rez.Loc}`);
-        const idData: { id?: string; Telefon: string; Loc: string }[] = await idRes.json();
-
-        if (idData.length > 0 && idData[0].id) {
-          await fetch(`${API_URL}/${idData[0].id}`, {
-            method: "DELETE"
-          });
-        }
-      }
-
-      setAlert("Rezervarea a fost ștearsă cu succes!");
-      setAlertType("success");
-      setDeletePhone('');
-      setShowDeleteForm(false);
-
-      setTimeout(() => window.location.reload(), 1500);
-    } catch {
-      setAlert("Eroare la ștergere.");
-      setAlertType("error");
-    }
-  };
-
-  const renderSeats = () => {
-    const seats = [];
-    const seatsPerRow = 4;
-    const fullRows = 12;
-
-    for (let row = 0; row < fullRows; row++) {
-      const rowSeats = [];
-      for (let col = 0; col < seatsPerRow; col++) {
-        const seatNumber = row * seatsPerRow + col + 1;
-        rowSeats.push(
-          <Seat
-            key={seatNumber}
-            number={seatNumber}
-            isOccupied={occupiedSeats.includes(seatNumber)}
-            isSelected={selectedSeat === seatNumber}
-            onSelect={setSelectedSeat}
-            name={ocupatBy[seatNumber]}
-          />
-        );
-      }
-      seats.push(
-        <div key={row} className="flex justify-center gap-8">
-          <div className="flex">{rowSeats.slice(0, 2)}</div>
-          <div className="w-8"></div>
-          <div className="flex">{rowSeats.slice(2, 4)}</div>
-        </div>
-      );
-    }
-
-    const lastRow = [];
-    for (let i = 0; i < 5; i++) {
-      const seatNumber = fullRows * seatsPerRow + i + 1;
-      lastRow.push(
-        <Seat
-          key={seatNumber}
-          number={seatNumber}
-          isOccupied={occupiedSeats.includes(seatNumber)}
-          isSelected={selectedSeat === seatNumber}
-          onSelect={setSelectedSeat}
-          name={ocupatBy[seatNumber]}
-        />
-      );
-    }
-
-    seats.push(
-      <div key="last-row" className="flex justify-center mt-4">
-        <div className="flex gap-2">{lastRow}</div>
-      </div>
-    );
-
-    return seats;
-  };
-
   if (isLoading) return <div className="flex justify-center items-center h-screen">Se încarcă...</div>;
 
   return (
@@ -239,7 +185,9 @@ function App() {
         )}
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="mb-8">{renderSeats()}</div>
+          <div className="mb-8">
+            {renderSeatsFromLayout(seatsLayout, occupiedSeats, selectedSeat, setSelectedSeat, ocupatBy)}
+          </div>
 
           <div className="flex justify-center items-center gap-2 text-gray-600 mb-8">
             <Phone size={20} />
@@ -285,56 +233,7 @@ function App() {
               Rezervă locul
             </button>
           </form>
-
-          <div className="text-center mt-8">
-            <button
-              onClick={() => setShowDeleteForm(true)}
-              className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
-            >
-              Șterge o rezervare
-            </button>
-          </div>
         </div>
-
-        {showDeleteForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
-              <button
-                onClick={() => setShowDeleteForm(false)}
-                className="absolute top-2 right-3 text-gray-400 hover:text-black text-xl"
-              >
-                &times;
-              </button>
-              <h2 className="text-xl font-semibold mb-2 text-center text-red-600">Șterge o rezervare</h2>
-              <p className="text-sm text-gray-600 mb-4 text-center">
-                Introdu numărul de telefon exact cu care ai făcut rezervarea.
-              </p>
-              <form onSubmit={confirmDelete}>
-                <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-2">Număr de telefon</label>
-                  <input
-                    type="tel"
-                    value={deletePhone}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^\d*$/.test(value)) {
-                        setDeletePhone(value);
-                      }
-                    }}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
-                >
-                  Confirmă ștergerea rezervării
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
 
         <div className="text-center text-sm text-gray-600 mt-4">
           <div className="flex justify-center gap-4 mb-2">
