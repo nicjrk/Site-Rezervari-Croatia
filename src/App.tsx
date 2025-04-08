@@ -30,7 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbwdfTwnW78CWW-GFDE8UEQCGpgGunNs6ELzL1UrqrzyKkb804xGNzR3s3apfSnQJAfxUA/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxc0Tv1KfM7YpfjeH-39VNzOTy7kkwDjwOdjf9GWYv-I8W-W0agbxnFclH1ZOkOdi-hqg/exec";
 
   useEffect(() => {
     fetchOccupiedSeats();
