@@ -12,7 +12,7 @@ const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect })
   return (
     <button
       className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
-        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' :
+        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' : 
           isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
       onClick={() => !isOccupied && onSelect(number)}
       disabled={isOccupied}
@@ -30,7 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbwdfTwnW78CWW-GFDE8UEQCGpgGunNs6ELzL1UrqrzyKkb804xGNzR3s3apfSnQJAfxUA/exec";
+  const API_URL = "https://sheetdb.io/api/v1/ohfbsp90spv39";
 
   useEffect(() => {
     fetchOccupiedSeats();
@@ -40,25 +40,27 @@ function App() {
     try {
       setIsLoading(true);
       const response = await fetch(API_URL);
-      const data: { loc: string }[] = await response.json();
-      const seats = data.map((rez) => parseInt(rez.loc));
+      const data = await response.json();
+      const seats = data.map((rez: any) => parseInt(rez.Loc)); // cu "L" mare dacă așa e scris în sheet
       setOccupiedSeats(seats);
       setIsLoading(false);
-    } catch {
+    } catch (error) {
       setError('Failed to load occupied seats');
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSeat) return;
 
     try {
       const reservation = {
-        nume: fullName,
-        telefon: phoneNumber,
-        loc: selectedSeat.toString(),
+        data: {
+          Nume: fullName,
+          Telefon: phoneNumber,
+          Loc: selectedSeat.toString(),
+        },
       };
 
       await fetch(API_URL, {
@@ -73,7 +75,7 @@ function App() {
       setFullName('');
       setPhoneNumber('');
       await fetchOccupiedSeats();
-    } catch {
+    } catch (error) {
       setError('Failed to submit reservation');
     }
   };
