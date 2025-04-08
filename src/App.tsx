@@ -6,24 +6,34 @@ interface SeatProps {
   isOccupied: boolean;
   isSelected: boolean;
   onSelect: (number: number) => void;
+  name?: string;
 }
 
-const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect }) => {
+const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect, name }) => {
   return (
-    <button
-      className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
-        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' : 
-          isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
-      onClick={() => !isOccupied && onSelect(number)}
-      disabled={isOccupied}
-    >
-      {number}
-    </button>
+    <div className="flex flex-col items-center">
+      {isOccupied && name && (
+        <span className="text-xs text-gray-600 mb-1 max-w-[3rem] text-center leading-tight break-words">
+          {name.split(" ")[0]}
+        </span>
+      )}
+      <button
+        className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
+          ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' :
+            isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
+        onClick={() => !isOccupied && onSelect(number)}
+        disabled={isOccupied}
+        title={isOccupied && name ? `Rezervat de ${name}` : ''}
+      >
+        {number}
+      </button>
+    </div>
   );
 };
 
 function App() {
   const [occupiedSeats, setOccupiedSeats] = useState<number[]>([]);
+  const [ocupatBy, setOcupatBy] = useState<{ [key: number]: string }>({});
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -41,11 +51,23 @@ function App() {
       setIsLoading(true);
       const response = await fetch(API_URL);
       const data = await response.json();
-      const seats = data.map((rez: any) => parseInt(rez.Loc)); // cu "L" mare dacă așa e scris în sheet
+
+      const seats: number[] = [];
+      const names: { [key: number]: string } = {};
+
+      data.forEach((rez: any) => {
+        const loc = parseInt(rez.Loc);
+        if (!isNaN(loc)) {
+          seats.push(loc);
+          names[loc] = rez.Nume || '';
+        }
+      });
+
       setOccupiedSeats(seats);
+      setOcupatBy(names);
       setIsLoading(false);
     } catch (error) {
-      setError('Failed to load occupied seats');
+      setError('Eroare la încărcarea locurilor');
       setIsLoading(false);
     }
   };
@@ -55,6 +77,16 @@ function App() {
     if (!selectedSeat) return;
 
     try {
+      // Verificare dacă locul a fost deja rezervat
+      const checkRes = await fetch(API_URL);
+      const existing = await checkRes.json();
+      const alreadyReserved = existing.some((rez: any) => rez.Loc === selectedSeat.toString());
+
+      if (alreadyReserved) {
+        setError(`Locul ${selectedSeat} a fost deja rezervat. Alege alt loc.`);
+        return;
+      }
+
       const reservation = {
         data: {
           Nume: fullName,
@@ -74,18 +106,20 @@ function App() {
       setSelectedSeat(null);
       setFullName('');
       setPhoneNumber('');
+      setError(null);
       await fetchOccupiedSeats();
     } catch (error) {
-      setError('Failed to submit reservation');
+      setError('Eroare la rezervare.');
     }
   };
 
   const renderSeats = () => {
     const seats = [];
-    const rowCount = 14;
+    const totalSeats = 55;
     const seatsPerRow = 4;
+    const fullRows = 12; // 12x4 = 48 locuri
 
-    for (let row = 0; row < rowCount; row++) {
+    for (let row = 0; row < fullRows; row++) {
       const rowSeats = [];
       for (let col = 0; col < seatsPerRow; col++) {
         const seatNumber = row * seatsPerRow + col + 1;
@@ -96,20 +130,23 @@ function App() {
             isOccupied={occupiedSeats.includes(seatNumber)}
             isSelected={selectedSeat === seatNumber}
             onSelect={setSelectedSeat}
+            name={ocupatBy[seatNumber]}
           />
         );
       }
       seats.push(
         <div key={row} className="flex justify-center gap-8">
           <div className="flex">{rowSeats.slice(0, 2)}</div>
+          <div className="w-8"></div> {/* Spațiu pentru ușă */}
           <div className="flex">{rowSeats.slice(2, 4)}</div>
         </div>
       );
     }
 
+    // Ultimul rând cu 5 locuri (49–53)
     const lastRow = [];
-    for (let i = 0; i < 3; i++) {
-      const seatNumber = rowCount * seatsPerRow + i + 1;
+    for (let i = 0; i < 5; i++) {
+      const seatNumber = fullRows * seatsPerRow + i + 1;
       lastRow.push(
         <Seat
           key={seatNumber}
@@ -117,13 +154,14 @@ function App() {
           isOccupied={occupiedSeats.includes(seatNumber)}
           isSelected={selectedSeat === seatNumber}
           onSelect={setSelectedSeat}
+          name={ocupatBy[seatNumber]}
         />
       );
     }
 
     seats.push(
-      <div key="last-row" className="flex justify-center">
-        <div className="flex">{lastRow}</div>
+      <div key="last-row" className="flex justify-center mt-4">
+        <div className="flex gap-2">{lastRow}</div>
       </div>
     );
 
@@ -150,7 +188,7 @@ function App() {
 
           <div className="flex justify-center items-center gap-2 text-gray-600 mb-8">
             <Phone size={20} />
-            <p>Pentru modificări sau întrebări, sună la 0764717923</p>
+            <p>Pentru întrebări sună la 0764717923</p>
           </div>
 
           <form onSubmit={handleSubmit} className="max-w-md mx-auto">
