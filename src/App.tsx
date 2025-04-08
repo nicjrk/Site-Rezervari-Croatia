@@ -6,16 +6,18 @@ interface SeatProps {
   isOccupied: boolean;
   isSelected: boolean;
   onSelect: (number: number) => void;
+  name?: string;
 }
 
-const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect }) => {
+const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect, name }) => {
   return (
     <button
       className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
-        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' : 
+        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' :
           isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
       onClick={() => !isOccupied && onSelect(number)}
       disabled={isOccupied}
+      title={isOccupied && name ? `Rezervat de ${name}` : ''}
     >
       {number}
     </button>
@@ -24,13 +26,14 @@ const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect })
 
 function App() {
   const [occupiedSeats, setOccupiedSeats] = useState<number[]>([]);
+  const [ocupatBy, setOcupatBy] = useState<{ [key: number]: string }>({});
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = "https://sheetdb.io/api/v1/ohfbsp90spv39";
+  const API_URL = "https://sheetdb.io/api/v1/ohfbsp90pspv39";
 
   useEffect(() => {
     fetchOccupiedSeats();
@@ -41,8 +44,20 @@ function App() {
       setIsLoading(true);
       const response = await fetch(API_URL);
       const data = await response.json();
-      const seats = data.map((rez: any) => parseInt(rez.Loc)); // cu "L" mare dacă așa e scris în sheet
+
+      const seats: number[] = [];
+      const names: { [key: number]: string } = {};
+
+      data.forEach((rez: any) => {
+        const loc = parseInt(rez.loc);
+        if (!isNaN(loc)) {
+          seats.push(loc);
+          names[loc] = rez.nume;
+        }
+      });
+
       setOccupiedSeats(seats);
+      setOcupatBy(names);
       setIsLoading(false);
     } catch (error) {
       setError('Failed to load occupied seats');
@@ -56,11 +71,9 @@ function App() {
 
     try {
       const reservation = {
-        data: {
-          Nume: fullName,
-          Telefon: phoneNumber,
-          Loc: selectedSeat.toString(),
-        },
+        nume: fullName,
+        telefon: phoneNumber,
+        loc: selectedSeat.toString(),
       };
 
       await fetch(API_URL, {
@@ -68,7 +81,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(reservation),
+        body: JSON.stringify({ data: reservation }),
       });
 
       setSelectedSeat(null);
@@ -82,7 +95,7 @@ function App() {
 
   const renderSeats = () => {
     const seats = [];
-    const rowCount = 14;
+    const rowCount = 10;
     const seatsPerRow = 4;
 
     for (let row = 0; row < rowCount; row++) {
@@ -96,6 +109,7 @@ function App() {
             isOccupied={occupiedSeats.includes(seatNumber)}
             isSelected={selectedSeat === seatNumber}
             onSelect={setSelectedSeat}
+            name={ocupatBy[seatNumber]}
           />
         );
       }
@@ -106,26 +120,6 @@ function App() {
         </div>
       );
     }
-
-    const lastRow = [];
-    for (let i = 0; i < 3; i++) {
-      const seatNumber = rowCount * seatsPerRow + i + 1;
-      lastRow.push(
-        <Seat
-          key={seatNumber}
-          number={seatNumber}
-          isOccupied={occupiedSeats.includes(seatNumber)}
-          isSelected={selectedSeat === seatNumber}
-          onSelect={setSelectedSeat}
-        />
-      );
-    }
-
-    seats.push(
-      <div key="last-row" className="flex justify-center">
-        <div className="flex">{lastRow}</div>
-      </div>
-    );
 
     return seats;
   };
