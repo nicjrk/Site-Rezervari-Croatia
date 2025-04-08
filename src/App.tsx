@@ -55,14 +55,18 @@ function App() {
     if (!selectedSeat) return;
 
     try {
-      const formData = new FormData();
-      formData.append("nume", fullName);
-      formData.append("telefon", phoneNumber);
-      formData.append("loc", selectedSeat.toString());
+      const reservation = {
+        nume: fullName,
+        telefon: phoneNumber,
+        loc: selectedSeat.toString(),
+      };
 
       await fetch(API_URL, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservation),
       });
 
       setSelectedSeat(null);
@@ -114,6 +118,7 @@ function App() {
         />
       );
     }
+
     seats.push(
       <div key="last-row" className="flex justify-center">
         <div className="flex">{lastRow}</div>
