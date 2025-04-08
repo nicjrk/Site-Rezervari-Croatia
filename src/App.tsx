@@ -12,7 +12,7 @@ const Seat: React.FC<SeatProps> = ({ number, isOccupied, isSelected, onSelect })
   return (
     <button
       className={`w-12 h-12 m-1 rounded-lg flex items-center justify-center font-medium transition-colors
-        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' : 
+        ${isOccupied ? 'bg-red-500 text-white cursor-not-allowed' :
           isSelected ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100 border border-gray-300'}`}
       onClick={() => !isOccupied && onSelect(number)}
       disabled={isOccupied}
@@ -40,17 +40,17 @@ function App() {
     try {
       setIsLoading(true);
       const response = await fetch(API_URL);
-      const data = await response.json();
-      const seats = data.map((rez: any) => parseInt(rez.loc));
+      const data: { loc: string }[] = await response.json();
+      const seats = data.map((rez) => parseInt(rez.loc));
       setOccupiedSeats(seats);
       setIsLoading(false);
-    } catch (err) {
+    } catch {
       setError('Failed to load occupied seats');
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedSeat) return;
 
@@ -73,7 +73,7 @@ function App() {
       setFullName('');
       setPhoneNumber('');
       await fetchOccupiedSeats();
-    } catch (err) {
+    } catch {
       setError('Failed to submit reservation');
     }
   };
