@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Phone } from 'lucide-react';
 
-interface Reservation {
-  seatNumber: number;
-  fullName: string;
-  phoneNumber: string;
-}
-
 interface SeatProps {
   number: number;
   isOccupied: boolean;
@@ -36,7 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = "https://script.google.com/macros/library/d/1xXiVx_Fb0PNo8Pap8XoRvtcwyknLVFfL03_tOXW3B-7a-W4omIXa6He6/2";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxc0Tv1KfM7YpfjeH-39VNzOTy7kkwDjwOdjf9GWYv-I8W-W0agbxnFclH1ZOkOdi-hqg/exec";
 
   useEffect(() => {
     fetchOccupiedSeats();
@@ -61,16 +55,14 @@ function App() {
     if (!selectedSeat) return;
 
     try {
-      const reservation = {
-        nume: fullName,
-        telefon: phoneNumber,
-        loc: selectedSeat,
-      };
+      const formData = new FormData();
+      formData.append("nume", fullName);
+      formData.append("telefon", phoneNumber);
+      formData.append("loc", selectedSeat.toString());
 
       await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reservation),
+        body: formData,
       });
 
       setSelectedSeat(null);
