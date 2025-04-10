@@ -83,7 +83,7 @@ function App() {
   const [alert, setAlert] = useState<string | null>(null);
   const [alertType, setAlertType] = useState<'success' | 'error' | null>(null);
 
-  const API_URL = "https://sheetdb.io/api/v1/ohfbsp90spv39";
+  const API_URL = "https://sheetdb.io/api/v1/v8ynmce5rrq04";
 
   useEffect(() => {
     fetchOccupiedSeats();
