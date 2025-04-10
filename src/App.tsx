@@ -33,21 +33,18 @@ const seatsLayout: (number | null)[][] = [
   [1, 2, null, 3, 4],
   [5, 6, null, 7, 8],
   [9, 10, null, 11, 12],
-  [13, 14, null, 15, 16],
-  [17, 18, null, 19, 20],
-  [21, 22, null, 23, 24],
-  [25, 26, null, null, null],   // WC
-  [27, 28, null, null, null],   // USA
+  [13, 14, null, 49, 50],
+  [17, 18, null, 15, 16],
+  [21, 22, null, 19, 20],
+  [25, 26, null, 23, 24],
+  [27, 28, null, null, null],  // WC + USA
   [29, 30, null, 31, 32],
   [33, 34, null, 35, 36],
   [37, 38, null, 39, 40],
   [41, 42, null, 43, 44],
-  [45, 46, null, 47, 48],
-  [49, 50, null, 51, 52],
-  [null, 53, 54, 55, null]      // Rândul din spate, doar 3 locuri
+  [47, 48, null, 45, 46],
+  [51, 52, 53, 54, 55]         // rândul din spate
 ];
-
-
 
 const renderSeatsFromLayout = (
   layout: (number | null)[][],
@@ -189,10 +186,18 @@ function App() {
             {renderSeatsFromLayout(seatsLayout, occupiedSeats, selectedSeat, setSelectedSeat, ocupatBy)}
           </div>
 
-          <div className="flex justify-center items-center gap-2 text-gray-600 mb-8">
-            <Phone size={20} />
-            <p>Pentru întrebări sună la 0764717923</p>
-          </div>
+          <div className="flex justify-center mb-8">
+  <a
+    href="https://wa.me/40742065096"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-lg shadow transition"
+  >
+    <Phone size={20} />
+    <span>Pentru întrebări sau schimbare de locuri, scrie-mi pe WhatsApp</span>
+  </a>
+</div>
+
 
           <form onSubmit={handleSubmit} className="max-w-md mx-auto">
             <div className="mb-4">
